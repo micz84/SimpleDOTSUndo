@@ -8,13 +8,13 @@ namespace pl.breams.SimpleDOTSUndo.Systems
     public class AddCommandSystemTest : SystemTestBase<AddCommandSystem>
     {
         [Test]
-        public void Given_NewCommand_When_NoCommandsInChain_Then_NewCommandShouldBeAddedAsActive()
+        public void Given_NewCommand_When_NoCommandsInChain_Then_NewCommandShouldBeAddedAsActive_And_RootCommandShouldExist_AndRootCommandShouldBeAddedAsPreviousCommand()
         {
             var query = new EntityQueryDesc
             {
                 All = new[]
                 {
-                    ComponentType.ReadOnly<Command>(), ComponentType.ReadOnly<DoComponent>(),
+                    ComponentType.ReadOnly<Command>(),
                     ComponentType.ReadOnly<RegisteredCommandSystemState>(), ComponentType.ReadOnly<Active>()
                 }
             };
@@ -23,16 +23,28 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
             var entity = _EntityManager.CreateEntity();
             _EntityManager.AddComponent<Command>(entity);
-            _EntityManager.AddComponent<DoComponent>(entity);
-            _System.Update();
+            SystemUpdate();
             var entities = newCommandQuery.ToEntityArray(Allocator.Temp);
             Assert.AreEqual(1, entities.Length);
             Assert.IsTrue(_EntityManager.HasComponent<Active>(entity));
             Assert.IsTrue(_EntityManager.HasComponent<PerformDo>(entity));
             Assert.IsTrue(_EntityManager.HasComponent<RegisteredCommandSystemState>(entity));
 
+            Assert.IsTrue(_System.HasSingleton<RootCommand>());
+            var rootCommandEntity = _System.GetSingletonEntity<RootCommand>();
+            Assert.IsFalse(_EntityManager.HasComponent<Active>(rootCommandEntity));
+            Assert.IsTrue(_EntityManager.HasComponent<NextCommand>(rootCommandEntity));
+            var rootNextCommand = _EntityManager.GetComponentData<NextCommand>(rootCommandEntity);
+            Assert.AreEqual(entity, rootNextCommand.Entity);
+
+            var commandPreviousCommand = _EntityManager.GetComponentData<PreviousCommand>(entity);
+            Assert.AreEqual(rootCommandEntity, commandPreviousCommand.Entity);
+
             entities.Dispose();
-            Assert.IsTrue(true);
+
+            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            barrier.Update();
+            Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(entity));
         }
 
         [Test]
@@ -43,7 +55,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             {
                 All = new[]
                 {
-                    ComponentType.ReadOnly<Command>(), ComponentType.ReadOnly<DoComponent>(),
+                    ComponentType.ReadOnly<Command>(),
                     ComponentType.ReadOnly<RegisteredCommandSystemState>(), ComponentType.ReadOnly<Active>()
                 }
             };
@@ -52,15 +64,13 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
             var entityCurrentCommand = _EntityManager.CreateEntity();
             _EntityManager.AddComponent<Command>(entityCurrentCommand);
-            _EntityManager.AddComponent<DoComponent>(entityCurrentCommand);
             _EntityManager.AddComponent<Active>(entityCurrentCommand);
             _EntityManager.AddComponent<RegisteredCommandSystemState>(entityCurrentCommand);
 
             var entityNewCommand = _EntityManager.CreateEntity();
             _EntityManager.AddComponent<Command>(entityNewCommand);
-            _EntityManager.AddComponent<DoComponent>(entityNewCommand);
 
-            _System.Update();
+            SystemUpdate();
             var entities = newCommandQuery.ToEntityArray(Allocator.Temp);
             Assert.AreEqual(1, entities.Length);
             Assert.IsTrue(_EntityManager.HasComponent<Active>(entityNewCommand));
@@ -90,8 +100,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             {
                 All = new[]
                 {
-                    ComponentType.ReadOnly<Command>(), ComponentType.ReadOnly<DoComponent>(),
-                    ComponentType.ReadOnly<RegisteredCommandSystemState>(), ComponentType.ReadOnly<Active>()
+                    ComponentType.ReadOnly<Command>(), ComponentType.ReadOnly<RegisteredCommandSystemState>(), ComponentType.ReadOnly<Active>()
                 }
             };
 
@@ -99,7 +108,6 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
             var entityCurrentCommand = _EntityManager.CreateEntity();
             _EntityManager.AddComponent<Command>(entityCurrentCommand);
-            _EntityManager.AddComponent<DoComponent>(entityCurrentCommand);
             _EntityManager.AddComponent<Active>(entityCurrentCommand);
             _EntityManager.AddComponent<RegisteredCommandSystemState>(entityCurrentCommand);
 
@@ -110,7 +118,6 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             });
 
             _EntityManager.AddComponent<Command>(entityNextCommand1);
-            _EntityManager.AddComponent<DoComponent>(entityNextCommand1);
             _EntityManager.AddComponent<RegisteredCommandSystemState>(entityNextCommand1);
             _EntityManager.AddComponentData(entityNextCommand1, new PreviousCommand
             {
@@ -123,7 +130,6 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 Entity = entityNextCommand2
             });
             _EntityManager.AddComponent<Command>(entityNextCommand2);
-            _EntityManager.AddComponent<DoComponent>(entityNextCommand2);
             _EntityManager.AddComponent<RegisteredCommandSystemState>(entityNextCommand2);
             _EntityManager.AddComponentData(entityNextCommand2, new PreviousCommand
             {
@@ -132,9 +138,8 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
             var entityNewCommand = _EntityManager.CreateEntity();
             _EntityManager.AddComponent<Command>(entityNewCommand);
-            _EntityManager.AddComponent<DoComponent>(entityNewCommand);
 
-            _System.Update();
+            SystemUpdate();
             var entities = newCommandQuery.ToEntityArray(Allocator.Temp);
             Assert.AreEqual(1, entities.Length);
             Assert.IsTrue(_EntityManager.HasComponent<Active>(entityNewCommand));
@@ -157,5 +162,76 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
             entities.Dispose();
         }
+        [Test]
+        public void
+            Given_NewCommand_When_CurrentCommandIsRootCommand_Then_NewCommandShouldBeAddedAsActiveWithPreviousCommandSet_And_RootCommandShouldNotBeActiveAndHaveNextCommandSet_And_AllOldNextCommandsShouldBeMarkedForCleanup()
+        {
+            var query = new EntityQueryDesc
+            {
+                All = new[]
+                {
+                    ComponentType.ReadOnly<Command>(),
+                    ComponentType.ReadOnly<RegisteredCommandSystemState>(), ComponentType.ReadOnly<Active>()
+                }
+            };
+
+            var newCommandQuery = _EntityManager.CreateEntityQuery(query);
+
+            var entityCurrentCommand = _EntityManager.CreateEntity();
+            _EntityManager.AddComponent<RootCommand>(entityCurrentCommand);
+            _EntityManager.AddComponent<Active>(entityCurrentCommand);
+
+            var entityNextCommand1 = _EntityManager.CreateEntity();
+            _EntityManager.AddComponentData(entityCurrentCommand, new NextCommand
+            {
+                Entity = entityNextCommand1
+            });
+
+            _EntityManager.AddComponent<Command>(entityNextCommand1);
+            _EntityManager.AddComponent<RegisteredCommandSystemState>(entityNextCommand1);
+            _EntityManager.AddComponentData(entityNextCommand1, new PreviousCommand
+            {
+                Entity = entityCurrentCommand
+            });
+
+            var entityNextCommand2 = _EntityManager.CreateEntity();
+            _EntityManager.AddComponentData(entityNextCommand1, new NextCommand
+            {
+                Entity = entityNextCommand2
+            });
+            _EntityManager.AddComponent<Command>(entityNextCommand2);
+            _EntityManager.AddComponent<RegisteredCommandSystemState>(entityNextCommand2);
+            _EntityManager.AddComponentData(entityNextCommand2, new PreviousCommand
+            {
+                Entity = entityNextCommand1
+            });
+
+            var entityNewCommand = _EntityManager.CreateEntity();
+            _EntityManager.AddComponent<Command>(entityNewCommand);
+
+            SystemUpdate();
+            var entities = newCommandQuery.ToEntityArray(Allocator.Temp);
+            Assert.AreEqual(1, entities.Length);
+            Assert.IsTrue(_EntityManager.HasComponent<Active>(entityNewCommand));
+            Assert.IsTrue(_EntityManager.HasComponent<PerformDo>(entityNewCommand));
+            Assert.IsTrue(_EntityManager.HasComponent<RegisteredCommandSystemState>(entityNewCommand));
+            Assert.IsTrue(_EntityManager.HasComponent<PreviousCommand>(entityNewCommand));
+
+            var previousCommand = _EntityManager.GetComponentData<PreviousCommand>(entityNewCommand);
+            Assert.AreEqual(entityCurrentCommand, previousCommand.Entity);
+
+            Assert.IsFalse(_EntityManager.HasComponent<Active>(entityCurrentCommand));
+            Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(entityCurrentCommand));
+            Assert.IsTrue(_EntityManager.HasComponent<NextCommand>(entityCurrentCommand));
+            var nextCommand = _EntityManager.GetComponentData<NextCommand>(entityCurrentCommand);
+            Assert.AreEqual(entityNewCommand, nextCommand.Entity);
+
+            Assert.True(_EntityManager.HasComponent<PerformCleanup>(entityNextCommand1));
+            Assert.True(_EntityManager.HasComponent<PerformCleanup>(entityNextCommand2));
+
+            entities.Dispose();
+        }
+
+
     }
 }

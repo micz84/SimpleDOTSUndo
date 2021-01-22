@@ -16,10 +16,25 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             _EntityManager = _TestWord.EntityManager;
             _System = _TestWord.GetOrCreateSystem<T>();
         }
+
         [TearDown]
         public void TearDown()
         {
             _TestWord?.Dispose();
+        }
+
+        protected void SystemUpdate()
+        {
+            var version = _System.GlobalSystemVersion;
+            _System.Update();
+            Assert.AreEqual(version+1, _System.GlobalSystemVersion);
+        }
+
+        protected void SystemUpdateNoExecution()
+        {
+            var version = _System.GlobalSystemVersion;
+            _System.Update();
+            Assert.AreEqual(version, _System.GlobalSystemVersion);
         }
     }
 }

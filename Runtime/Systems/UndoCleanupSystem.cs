@@ -1,7 +1,6 @@
 using pl.breams.SimpleDOTSUndo.Components;
-using Unity.Collections;
 using Unity.Entities;
-using UnityEngine;
+
 
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
@@ -18,7 +17,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             var query = new EntityQueryDesc
             {
                 None = new ComponentType[] {typeof(Command)},
-                Any = new ComponentType[] {typeof(DoComponent),typeof(UndoComponent)}
+                Any = new ComponentType[] {typeof(PerformDo),typeof(PerformUndo)}
             };
             _RedoUndoCleanupQuery = GetEntityQuery(query);
 

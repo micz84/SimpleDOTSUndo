@@ -4,18 +4,20 @@ using Unity.Entities;
 
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
-    [UpdateInGroup(typeof(SimulationSystemGroup))]
+    [UpdateInGroup(typeof(UndoSystemGroup))]
     [UpdateAfter(typeof(UndoCleanupSystem))]
     public class AddCommandSystem : SystemBase
     {
         private EntityQuery _NewCommandQuery;
+        private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         protected override void OnCreate()
         {
             base.OnCreate();
+            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
             var query = new EntityQueryDesc
             {
                 None = new[] {ComponentType.ReadOnly<RegisteredCommandSystemState>()},
-                All = new[] {ComponentType.ReadOnly<Command>(), ComponentType.ReadOnly<DoComponent>()}
+                All = new[] {ComponentType.ReadOnly<Command>()}
             };
 
             _NewCommandQuery = GetEntityQuery(query);
@@ -78,10 +80,26 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
                 EntityManager.RemoveComponent<Active>(activeCommandEntity);
             }
+            else
+            {
+                var rootCommandEntity = EntityManager.CreateEntity();
+                EntityManager.AddComponentData(rootCommandEntity, new RootCommand());
+                EntityManager.AddComponentData(rootCommandEntity, new NextCommand()
+                {
+                    Entity = commandEntity
+                });
+                EntityManager.AddComponentData(commandEntity, new PreviousCommand
+                {
+                    Entity = rootCommandEntity
+                });
+            }
 
             EntityManager.AddComponentData(commandEntity, new Active());
             EntityManager.AddComponentData(commandEntity, new PerformDo());
             EntityManager.AddComponentData(commandEntity, new RegisteredCommandSystemState());
+
+            var ecb = _BarrierSystem.CreateCommandBuffer();
+            ecb.RemoveComponent<PerformDo>(commandEntity);
         }
     }
 
