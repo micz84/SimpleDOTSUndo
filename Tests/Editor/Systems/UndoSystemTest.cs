@@ -140,9 +140,10 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             SystemUpdate();
 
             Assert.IsTrue(_EntityManager.HasComponent<PerformUndo>(activeCommand2));
-            Assert.IsFalse(_EntityManager.HasComponent<PerformUndo>(activeCommand));
+            Assert.IsTrue(_EntityManager.HasComponent<PerformUndo>(activeCommand));
             Assert.IsFalse(_EntityManager.HasComponent<Active>(activeCommand2));
-            Assert.IsTrue(_EntityManager.HasComponent<Active>(activeCommand));
+            Assert.IsFalse(_EntityManager.HasComponent<Active>(activeCommand));
+            Assert.IsTrue(_EntityManager.HasComponent<Active>(rootEntity));
 
             var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();

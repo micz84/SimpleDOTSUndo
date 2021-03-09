@@ -3,7 +3,6 @@ using System.Reflection;
 using pl.breams.SimpleDOTSUndo.Components;
 using Unity.Collections;
 using Unity.Entities;
-using UnityEngine;
 
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
@@ -13,8 +12,8 @@ namespace pl.breams.SimpleDOTSUndo.Systems
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         private EntityQuery _PerformUndoCommand;
-        private NativeStream _UndoStream;
-        public NativeStream UndoStream => _UndoStream;
+
+        private CommandSystemBase[] _CommandSystems = null;
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -32,9 +31,16 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 }
             };
 
-
             _PerformUndoCommand = GetEntityQuery(query);
-            //_UndoStream = new NativeStream(Allocator.Persistent);
+
+            var commandSystems = Assembly
+                .GetAssembly(typeof(CommandSystemBase))
+                .GetTypes()
+                .Where(t => t.IsSubclassOf(typeof(CommandSystemBase))).ToArray();
+            _CommandSystems = new CommandSystemBase[commandSystems.Length];
+            var i = 0;
+            foreach (var systemType in commandSystems)
+                _CommandSystems[i++] = (CommandSystemBase) World.DefaultGameObjectInjectionWorld.GetOrCreateSystem(systemType);
             RequireForUpdate(_PerformUndoCommand);
         }
 
@@ -42,10 +48,6 @@ namespace pl.breams.SimpleDOTSUndo.Systems
         protected override void OnUpdate()
         {
             var performUndoEntities = _PerformUndoCommand.ToEntityArray(Allocator.Temp);
-            var undoPeformed = false;
-            if (performUndoEntities.Length > 1)
-                // TODO: multiple undos in one frame
-                Debug.LogWarning("Currently multiple commands undo is not supported");
 
             var ecb = _BarrierSystem.CreateCommandBuffer();
 
@@ -54,8 +56,6 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 var performDoEntity = performUndoEntities[i];
                 ecb.DestroyEntity(performDoEntity);
 
-                if (undoPeformed)
-                    continue;
                 var activeCommandEntity = GetSingletonEntity<Active>();
                 if (!EntityManager.HasComponent<PreviousCommand>(activeCommandEntity))
                     continue;
@@ -70,7 +70,10 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 EntityManager.AddComponent<Active>(previousCommand.Entity);
 
                 ecb.RemoveComponent<PerformUndo>(activeCommandEntity);
-                undoPeformed = true;
+
+                for(var systemIndex = 0; systemIndex < _CommandSystems.Length;systemIndex++)
+                    _CommandSystems[systemIndex].Update();
+
             }
 
             performUndoEntities.Dispose();
