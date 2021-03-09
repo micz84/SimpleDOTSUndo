@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Reflection;
 using pl.breams.SimpleDOTSUndo.Components;
 using Unity.Collections;
 using Unity.Entities;
@@ -11,7 +13,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         private EntityQuery _PerformDoCommand;
-
+        private CommandSystemBase[] _CommandSystems = null;
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -30,7 +32,14 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             };
 
             _PerformDoCommand = GetEntityQuery(query);
-
+            var commandSystems = Assembly
+                .GetAssembly(typeof(CommandSystemBase))
+                .GetTypes()
+                .Where(t => t.IsSubclassOf(typeof(CommandSystemBase))).ToArray();
+            _CommandSystems = new CommandSystemBase[commandSystems.Length];
+            var i = 0;
+            foreach (var systemType in commandSystems)
+                _CommandSystems[i++] = (CommandSystemBase) World.DefaultGameObjectInjectionWorld.GetOrCreateSystem(systemType);
             RequireForUpdate(_PerformDoCommand);
         }
 
@@ -38,10 +47,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
         protected override void OnUpdate()
         {
             var performEntieties = _PerformDoCommand.ToEntityArray(Allocator.Temp);
-            var redoPerformed = false;
-            if (performEntieties.Length > 1)
-                // TODO: multiple undos in one frame
-                Debug.LogWarning("Currently multiple commands undo is not supported");
+
 
             var ecb = _BarrierSystem.CreateCommandBuffer();
             for (var i = 0; i < performEntieties.Length; i++)
@@ -49,9 +55,6 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 var performDoEntity = performEntieties[i];
 
                 ecb.DestroyEntity(performDoEntity);
-
-                if (redoPerformed)
-                    continue;
                 var activeCommandEntity = GetSingletonEntity<Active>();
                 if (!EntityManager.HasComponent<NextCommand>(activeCommandEntity))
                     continue;
@@ -63,11 +66,11 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 EntityManager.AddComponent<PerformDo>(nextCommand.Entity);
                 EntityManager.RemoveComponent<Active>(activeCommandEntity);
 
-                Debug.Log($"Next command entity {nextCommand.Entity} active {activeCommandEntity}");
                 EntityManager.AddComponentData(nextCommand.Entity, new Active());
 
                 ecb.RemoveComponent<PerformDo>(nextCommand.Entity);
-                redoPerformed = true;
+                for(var systemIndex = 0; systemIndex < _CommandSystems.Length;systemIndex++)
+                    _CommandSystems[systemIndex].Update();
             }
 
             performEntieties.Dispose();

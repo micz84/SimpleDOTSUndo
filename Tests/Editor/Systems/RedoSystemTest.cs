@@ -183,10 +183,11 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             SystemUpdate();
 
             Assert.IsTrue(_EntityManager.HasComponent<PerformDo>(nextCommand1));
-            Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(nextCommand2));
+            Assert.IsTrue(_EntityManager.HasComponent<PerformDo>(nextCommand2));
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(activeCommand));
             Assert.IsFalse(_EntityManager.HasComponent<Active>(activeCommand));
-            Assert.IsTrue(_EntityManager.HasComponent<Active>(nextCommand1));
+            Assert.IsFalse(_EntityManager.HasComponent<Active>(nextCommand1));
+            Assert.IsTrue(_EntityManager.HasComponent<Active>(nextCommand2));
 
             var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
