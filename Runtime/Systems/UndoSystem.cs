@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Reflection;
 using pl.breams.SimpleDOTSUndo.Components;
 using Unity.Collections;
 using Unity.Entities;
@@ -11,7 +13,8 @@ namespace pl.breams.SimpleDOTSUndo.Systems
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         private EntityQuery _PerformUndoCommand;
-
+        private NativeStream _UndoStream;
+        public NativeStream UndoStream => _UndoStream;
         protected override void OnCreate()
         {
             base.OnCreate();
@@ -29,8 +32,9 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 }
             };
 
-            _PerformUndoCommand = GetEntityQuery(query);
 
+            _PerformUndoCommand = GetEntityQuery(query);
+            //_UndoStream = new NativeStream(Allocator.Persistent);
             RequireForUpdate(_PerformUndoCommand);
         }
 
