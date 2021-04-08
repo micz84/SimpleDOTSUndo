@@ -88,5 +88,29 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             Assert.IsFalse(_EntityManager.Exists(entityNextCommand1));
             Assert.IsFalse(_EntityManager.Exists(entityNextCommand2));
         }
+
+        [Test]
+        public void Given_ConfirmCommand_Then_EntityDestroyedByBarrierSystem()
+        {
+            var confirmActionEntity = _EntityManager.CreateEntity();
+            _EntityManager.AddComponent<ConfirmCommand>(confirmActionEntity);
+            SystemUpdate();
+            Assert.True(_EntityManager.Exists(confirmActionEntity));
+            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            barrier.Update();
+            Assert.False(_EntityManager.Exists(confirmActionEntity));
+        }
+
+        [Test]
+        public void Given_CancelCommand_Then_EntityDestroyedByBarrierSystem()
+        {
+            var cancelActionEntity = _EntityManager.CreateEntity();
+            _EntityManager.AddComponent<CancelCommand>(cancelActionEntity);
+            SystemUpdate();
+            Assert.True(_EntityManager.Exists(cancelActionEntity));
+            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            barrier.Update();
+            Assert.False(_EntityManager.Exists(cancelActionEntity));
+        }
     }
 }
