@@ -8,7 +8,7 @@ using Unity.Entities;
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
-    [UpdateAfter(typeof(UndoSystem))]
+    [UpdateBefore(typeof(UndoCleanupSystem))]
     public class RedoSystem : SystemBase
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
@@ -51,7 +51,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
         protected override void OnUpdate()
         {
-            var performEntities = _PerformDoCommand.ToEntityArray(Allocator.Temp);
+            using var performEntities = _PerformDoCommand.ToEntityArray(Allocator.Temp);
 
             var ecb = _BarrierSystem.CreateCommandBuffer();
             for (var i = 0; i < performEntities.Length; i++)
@@ -77,7 +77,6 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                     _CommandSystems[systemIndex].Update();
             }
 
-            performEntities.Dispose();
         }
     }
 }

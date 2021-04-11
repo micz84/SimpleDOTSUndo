@@ -5,17 +5,17 @@ using Unity.Entities;
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
-    [UpdateBefore(typeof(AddCommandSystem))]
+    [UpdateBefore(typeof(UndoSystem))]
     public class RemoveTemporaryCommandSystem : SystemBase
     {
-        private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         private EntityQuery _PerformDoCommand;
         private EntityQuery _TempCommand;
+        private EntityArchetype _UndoArchetype;
 
         protected override void OnCreate()
         {
             base.OnCreate();
-            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            _UndoArchetype = EntityManager.CreateArchetype(ComponentType.ReadWrite<PerformUndo>());
             var queryDesc = new EntityQueryDesc
             {
                 All = new ComponentType[]
@@ -45,11 +45,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             if(activeCommands[0] == performDoEntities[0])
                 return;
 
-            var ecb = _BarrierSystem.CreateCommandBuffer();
-            if (performDoEntities.Length != 0)
-            {
-                PerformUndoCommand(ecb);
-            }
+            EntityManager.CreateEntity(_UndoArchetype);
         }
 
         private void PerformUndoCommand(EntityCommandBuffer ecb)

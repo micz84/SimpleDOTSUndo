@@ -7,7 +7,8 @@ using Unity.Transforms;
 namespace pl.breams.SimpleDOTSUndo.Sample.Systems
 {
     [UpdateAfter(typeof(UndoSystemGroup))]
-    public class MoveCommandSystem : SystemBase
+    [DisableAutoCreation]
+    public class MoveCommandSystem : CommandSystemBase
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
 
@@ -15,6 +16,7 @@ namespace pl.breams.SimpleDOTSUndo.Sample.Systems
         {
             base.OnCreate();
             _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+
         }
 
         protected override void OnUpdate()

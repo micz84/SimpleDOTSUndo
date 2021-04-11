@@ -9,6 +9,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
     public class CancelCommandSystem:SystemBase
     {
         private EntityQuery _TempCommand;
+        private EntityArchetype _UndoArchetype;
 
         protected override void OnCreate()
         {
@@ -20,6 +21,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                     typeof(Active), typeof(Command), typeof(TempCommand)
                 }
             };
+            _UndoArchetype = EntityManager.CreateArchetype(ComponentType.ReadWrite<PerformUndo>());
             _TempCommand = GetEntityQuery(queryDesc);
             RequireForUpdate(_TempCommand);
             RequireSingletonForUpdate<CancelCommand>();
@@ -30,9 +32,8 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             using var tempCommandEntities = _TempCommand.ToEntityArray(Allocator.Temp);
             var tempCommandEntity = tempCommandEntities[0];
 
-            var entity = EntityManager.CreateEntity();
-            EntityManager.AddComponentData(entity, new PerformUndo());
-            EntityManager.AddComponentData(tempCommandEntity, new PerformCleanup());
+            EntityManager.CreateEntity(_UndoArchetype);
+            //EntityManager.AddComponentData(tempCommandEntity, new PerformCleanup());
 
         }
     }

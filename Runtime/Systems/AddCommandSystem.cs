@@ -5,7 +5,7 @@ using Unity.Entities;
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
-    [UpdateAfter(typeof(UndoCleanupSystem))]
+    [UpdateBefore(typeof(RedoSystem))]
     public class AddCommandSystem : SystemBase
     {
         private EntityQuery _NewCommandQuery;
@@ -78,12 +78,14 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                     Entity = activeCommandEntity
                 });
 
-                EntityManager.RemoveComponent<Active>(activeCommandEntity);
+                //EntityManager.RemoveComponent<Active>(activeCommandEntity);
             }
             else
             {
                 var rootCommandEntity = EntityManager.CreateEntity();
+
                 EntityManager.AddComponentData(rootCommandEntity, new RootCommand());
+                EntityManager.AddComponentData(rootCommandEntity, new Active());
                 EntityManager.AddComponentData(rootCommandEntity, new NextCommand()
                 {
                     Entity = commandEntity
@@ -94,8 +96,8 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 });
             }
 
-            EntityManager.AddComponentData(commandEntity, new Active());
-            EntityManager.AddComponentData(commandEntity, new PerformDo());
+            //EntityManager.AddComponentData(commandEntity, new Active());
+            //EntityManager.AddComponentData(commandEntity, new PerformDo());
             EntityManager.AddComponentData(commandEntity, new RegisteredCommandSystemState());
 
             var ecb = _BarrierSystem.CreateCommandBuffer();

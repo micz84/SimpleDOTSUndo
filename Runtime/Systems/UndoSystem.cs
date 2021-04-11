@@ -8,13 +8,12 @@ using Unity.Entities;
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
-    [UpdateAfter(typeof(AddCommandSystem))]
+    [UpdateBefore(typeof(AddCommandSystem))]
     public class UndoSystem : SystemBase
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
 
         private List<CommandSystemBase> _CommandSystems = new List<CommandSystemBase>();
-        private EntityQuery _PerformDoCommand;
         private EntityQuery _PerformUndoCommand;
 
         protected override void OnCreate()
@@ -36,19 +35,6 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
             _PerformUndoCommand = GetEntityQuery(query);
 
-            var queryDo = new EntityQueryDesc
-            {
-                None = new ComponentType[]
-                {
-                    typeof(Command)
-                },
-                All = new ComponentType[]
-                {
-                    typeof(PerformDo)
-                }
-            };
-
-            _PerformDoCommand = GetEntityQuery(queryDo);
 
             RequireForUpdate(_PerformUndoCommand);
 
@@ -68,22 +54,12 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
         protected override void OnUpdate()
         {
-            var performUndoEntities = _PerformUndoCommand.ToEntityArray(Allocator.Temp);
-            var performDoEntities = _PerformDoCommand.ToEntityArray(Allocator.Temp);
-            var activeCommandEntity = GetSingletonEntity<Active>();
+            using var performUndoEntities = _PerformUndoCommand.ToEntityArray(Allocator.Temp);
             var ecb = _BarrierSystem.CreateCommandBuffer();
-            if (performDoEntities.Length != 0)
-            {
-                var tempCommandEntities = GetComponentDataFromEntity<TempCommand>();
-                if (tempCommandEntities.HasComponent(activeCommandEntity))
-                    PerformUndoCommand(activeCommandEntity, ecb);
-            }
 
             for (var i = 0; i < performUndoEntities.Length; i++)
                 PerformUndoCommand(performUndoEntities[i], ecb);
 
-            performUndoEntities.Dispose();
-            performDoEntities.Dispose();
         }
 
         protected void PerformUndoCommand(Entity performUndoEntity, EntityCommandBuffer ecb)
