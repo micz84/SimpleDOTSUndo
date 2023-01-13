@@ -19,7 +19,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             _EntityManager.AddComponent<PerformDo>(doActionEntity);
             SystemUpdate();
             Assert.True(_EntityManager.Exists(doActionEntity));
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
             Assert.False(_EntityManager.Exists(doActionEntity));
         }
@@ -31,7 +31,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             _EntityManager.AddComponent<PerformUndo>(undoActionEntity);
             SystemUpdate();
             Assert.True(_EntityManager.Exists(undoActionEntity));
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
             Assert.False(_EntityManager.Exists(undoActionEntity));
         }
@@ -80,13 +80,37 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             Assert.IsTrue(_EntityManager.Exists(entityCurrentCommand));
             Assert.IsTrue(_EntityManager.Exists(entityNextCommand1));
             Assert.IsTrue(_EntityManager.Exists(entityNextCommand2));
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
 
             Assert.IsTrue(_EntityManager.Exists(entityNewCommand));
             Assert.IsTrue(_EntityManager.Exists(entityCurrentCommand));
             Assert.IsFalse(_EntityManager.Exists(entityNextCommand1));
             Assert.IsFalse(_EntityManager.Exists(entityNextCommand2));
+        }
+
+        [Test]
+        public void Given_ConfirmCommand_Then_EntityDestroyedByBarrierSystem()
+        {
+            var confirmActionEntity = _EntityManager.CreateEntity();
+            _EntityManager.AddComponent<ConfirmCommand>(confirmActionEntity);
+            SystemUpdate();
+            Assert.True(_EntityManager.Exists(confirmActionEntity));
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
+            barrier.Update();
+            Assert.False(_EntityManager.Exists(confirmActionEntity));
+        }
+
+        [Test]
+        public void Given_CancelCommand_Then_EntityDestroyedByBarrierSystem()
+        {
+            var cancelActionEntity = _EntityManager.CreateEntity();
+            _EntityManager.AddComponent<CancelCommand>(cancelActionEntity);
+            SystemUpdate();
+            Assert.True(_EntityManager.Exists(cancelActionEntity));
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
+            barrier.Update();
+            Assert.False(_EntityManager.Exists(cancelActionEntity));
         }
     }
 }

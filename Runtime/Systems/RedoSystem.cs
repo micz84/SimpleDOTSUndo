@@ -1,23 +1,24 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using pl.breams.SimpleDOTSUndo.Components;
 using Unity.Collections;
 using Unity.Entities;
-using UnityEngine;
 
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
-    [UpdateAfter(typeof(AddCommandSystem))]
-    public class RedoSystem : SystemBase
+    [UpdateBefore(typeof(UndoCleanupSystem))]
+    public partial class RedoSystem : SystemBase
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
+        private readonly List<CommandSystemBase> _CommandSystems = new List<CommandSystemBase>();
         private EntityQuery _PerformDoCommand;
-        private CommandSystemBase[] _CommandSystems = null;
+
         protected override void OnCreate()
         {
             base.OnCreate();
-            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            _BarrierSystem = this.World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
 
             var query = new EntityQueryDesc
             {
@@ -32,27 +33,30 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             };
 
             _PerformDoCommand = GetEntityQuery(query);
-            var commandSystems = Assembly
-                .GetAssembly(typeof(CommandSystemBase))
-                .GetTypes()
-                .Where(t => t.IsSubclassOf(typeof(CommandSystemBase))).ToArray();
-            _CommandSystems = new CommandSystemBase[commandSystems.Length];
-            var i = 0;
-            foreach (var systemType in commandSystems)
-                _CommandSystems[i++] = (CommandSystemBase) World.DefaultGameObjectInjectionWorld.GetOrCreateSystem(systemType);
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            for (var assembliesIndex = 0; assembliesIndex < assemblies.Length; assembliesIndex++)
+            {
+                var assembly = assemblies[assembliesIndex];
+                var types = assembly.GetTypes();
+
+                var commandSystems = types.Where(t => t.IsSubclassOf(typeof(CommandSystemBase))).ToArray();
+                foreach (var systemType in commandSystems)
+                    _CommandSystems.Add(
+                        (CommandSystemBase) World.GetOrCreateSystemManaged(systemType));
+            }
+
             RequireForUpdate(_PerformDoCommand);
         }
 
 
         protected override void OnUpdate()
         {
-            var performEntieties = _PerformDoCommand.ToEntityArray(Allocator.Temp);
-
+            using var performEntities = _PerformDoCommand.ToEntityArray(Allocator.Temp);
 
             var ecb = _BarrierSystem.CreateCommandBuffer();
-            for (var i = 0; i < performEntieties.Length; i++)
+            for (var i = 0; i < performEntities.Length; i++)
             {
-                var performDoEntity = performEntieties[i];
+                var performDoEntity = performEntities[i];
 
                 ecb.DestroyEntity(performDoEntity);
                 var activeCommandEntity = GetSingletonEntity<Active>();
@@ -69,11 +73,10 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 EntityManager.AddComponentData(nextCommand.Entity, new Active());
 
                 ecb.RemoveComponent<PerformDo>(nextCommand.Entity);
-                for(var systemIndex = 0; systemIndex < _CommandSystems.Length;systemIndex++)
+                for (var systemIndex = 0; systemIndex < _CommandSystems.Count; systemIndex++)
                     _CommandSystems[systemIndex].Update();
             }
 
-            performEntieties.Dispose();
         }
     }
 }

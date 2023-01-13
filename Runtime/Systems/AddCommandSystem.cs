@@ -5,15 +5,15 @@ using Unity.Entities;
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
-    [UpdateAfter(typeof(UndoCleanupSystem))]
-    public class AddCommandSystem : SystemBase
+    [UpdateBefore(typeof(RedoSystem))]
+    public partial class AddCommandSystem : SystemBase
     {
         private EntityQuery _NewCommandQuery;
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         protected override void OnCreate()
         {
             base.OnCreate();
-            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            _BarrierSystem = this.World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             var query = new EntityQueryDesc
             {
                 None = new[] {ComponentType.ReadOnly<RegisteredCommandSystemState>()},
@@ -78,12 +78,14 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                     Entity = activeCommandEntity
                 });
 
-                EntityManager.RemoveComponent<Active>(activeCommandEntity);
+                //EntityManager.RemoveComponent<Active>(activeCommandEntity);
             }
             else
             {
                 var rootCommandEntity = EntityManager.CreateEntity();
+
                 EntityManager.AddComponentData(rootCommandEntity, new RootCommand());
+                EntityManager.AddComponentData(rootCommandEntity, new Active());
                 EntityManager.AddComponentData(rootCommandEntity, new NextCommand()
                 {
                     Entity = commandEntity
@@ -94,8 +96,8 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 });
             }
 
-            EntityManager.AddComponentData(commandEntity, new Active());
-            EntityManager.AddComponentData(commandEntity, new PerformDo());
+            //EntityManager.AddComponentData(commandEntity, new Active());
+            //EntityManager.AddComponentData(commandEntity, new PerformDo());
             EntityManager.AddComponentData(commandEntity, new RegisteredCommandSystemState());
 
             var ecb = _BarrierSystem.CreateCommandBuffer();

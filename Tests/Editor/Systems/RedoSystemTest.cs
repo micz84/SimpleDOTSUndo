@@ -23,7 +23,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(rootEntity));
             Assert.IsTrue(_EntityManager.HasComponent<Active>(rootEntity));
 
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(rootEntity));
             Assert.IsFalse(_EntityManager.Exists(doEntity));
@@ -59,7 +59,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             Assert.IsTrue(_EntityManager.HasComponent<Active>(activeCommand));
             Assert.IsFalse(_EntityManager.HasComponent<Active>(rootEntity));
 
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(activeCommand));
             Assert.IsFalse(_EntityManager.Exists(redoEntity));
@@ -93,7 +93,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             Assert.IsTrue(_EntityManager.HasComponent<Active>(activeCommand));
             Assert.IsFalse(_EntityManager.HasComponent<Active>(rootEntity));
 
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(activeCommand));
             Assert.IsFalse(_EntityManager.Exists(redoEntity));
@@ -129,7 +129,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             Assert.IsTrue(_EntityManager.HasComponent<Active>(activeCommand));
             Assert.IsFalse(_EntityManager.HasComponent<Active>(rootEntity));
 
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(activeCommand));
             Assert.IsFalse(_EntityManager.Exists(redoEntity));
@@ -189,7 +189,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             Assert.IsFalse(_EntityManager.HasComponent<Active>(nextCommand1));
             Assert.IsTrue(_EntityManager.HasComponent<Active>(nextCommand2));
 
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(nextCommand1));
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(activeCommand));

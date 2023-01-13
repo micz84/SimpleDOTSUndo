@@ -1,5 +1,6 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using pl.breams.SimpleDOTSUndo.Components;
 using Unity.Collections;
 using Unity.Entities;
@@ -7,17 +8,18 @@ using Unity.Entities;
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
-    [UpdateAfter(typeof(AddCommandSystem))]
-    public class UndoSystem : SystemBase
+    [UpdateBefore(typeof(AddCommandSystem))]
+    public partial class UndoSystem : SystemBase
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
+
+        private List<CommandSystemBase> _CommandSystems = new List<CommandSystemBase>();
         private EntityQuery _PerformUndoCommand;
 
-        private CommandSystemBase[] _CommandSystems = null;
         protected override void OnCreate()
         {
             base.OnCreate();
-            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            _BarrierSystem = this.World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
 
             var query = new EntityQueryDesc
             {
@@ -33,50 +35,54 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
             _PerformUndoCommand = GetEntityQuery(query);
 
-            var commandSystems = Assembly
-                .GetAssembly(typeof(CommandSystemBase))
-                .GetTypes()
-                .Where(t => t.IsSubclassOf(typeof(CommandSystemBase))).ToArray();
-            _CommandSystems = new CommandSystemBase[commandSystems.Length];
-            var i = 0;
-            foreach (var systemType in commandSystems)
-                _CommandSystems[i++] = (CommandSystemBase) World.DefaultGameObjectInjectionWorld.GetOrCreateSystem(systemType);
-            RequireForUpdate(_PerformUndoCommand);
-        }
 
+            RequireForUpdate(_PerformUndoCommand);
+
+            var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            for (var assembliesIndex = 0; assembliesIndex < assemblies.Length; assembliesIndex++)
+            {
+                var assembly = assemblies[assembliesIndex];
+                var types = assembly.GetTypes();
+
+                var commandSystems = types.Where(t => t.IsSubclassOf(typeof(CommandSystemBase))).ToArray();
+                foreach (var systemType in commandSystems)
+                    _CommandSystems.Add(
+                        (CommandSystemBase) World.GetOrCreateSystemManaged(systemType));
+            }
+
+        }
 
         protected override void OnUpdate()
         {
-            var performUndoEntities = _PerformUndoCommand.ToEntityArray(Allocator.Temp);
-
+            using var performUndoEntities = _PerformUndoCommand.ToEntityArray(Allocator.Temp);
             var ecb = _BarrierSystem.CreateCommandBuffer();
 
             for (var i = 0; i < performUndoEntities.Length; i++)
-            {
-                var performDoEntity = performUndoEntities[i];
-                ecb.DestroyEntity(performDoEntity);
+                PerformUndoCommand(performUndoEntities[i], ecb);
 
-                var activeCommandEntity = GetSingletonEntity<Active>();
-                if (!EntityManager.HasComponent<PreviousCommand>(activeCommandEntity))
-                    continue;
+        }
 
-                var previousCommand = EntityManager.GetComponentData<PreviousCommand>(activeCommandEntity);
-                if (previousCommand.Entity == Entity.Null)
-                    continue;
+        protected void PerformUndoCommand(Entity performUndoEntity, EntityCommandBuffer ecb)
+        {
+            ecb.DestroyEntity(performUndoEntity);
 
-                EntityManager.AddComponent<PerformUndo>(activeCommandEntity);
-                EntityManager.RemoveComponent<Active>(activeCommandEntity);
+            var activeCommandEntity = GetSingletonEntity<Active>();
+            if (!EntityManager.HasComponent<PreviousCommand>(activeCommandEntity))
+                return;
 
-                EntityManager.AddComponent<Active>(previousCommand.Entity);
+            var previousCommand = EntityManager.GetComponentData<PreviousCommand>(activeCommandEntity);
+            if (previousCommand.Entity == Entity.Null)
+                return;
 
-                ecb.RemoveComponent<PerformUndo>(activeCommandEntity);
+            EntityManager.AddComponent<PerformUndo>(activeCommandEntity);
+            EntityManager.RemoveComponent<Active>(activeCommandEntity);
 
-                for(var systemIndex = 0; systemIndex < _CommandSystems.Length;systemIndex++)
-                    _CommandSystems[systemIndex].Update();
+            EntityManager.AddComponent<Active>(previousCommand.Entity);
 
-            }
+            ecb.RemoveComponent<PerformUndo>(activeCommandEntity);
 
-            performUndoEntities.Dispose();
+            for (var systemIndex = 0; systemIndex < _CommandSystems.Count; systemIndex++)
+                _CommandSystems[systemIndex].Update();
         }
     }
 }

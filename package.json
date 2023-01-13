@@ -1,18 +1,18 @@
 {
   "name": "pl.bream.simpledotsundu",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "Simple DOTS Undo",
   "description": "This a simple udno system for Unity DOTS based application",
   "unity": "2021.1",
   "dependencies": {
-    "com.unity.entities": "0.16.0-preview.21"
+    "com.unity.entities": "1.0.0-pre.15"
  },
  "keywords": [
     "Undo"
   ],
   "author": {
     "name": "Micz84",
-    "email": "m@example.com",
+    "email": "michal.leszczynski.84@gmail.com",
     "url": "https://github.com/micz84"
   },
   "samples": [
@@ -21,7 +21,7 @@
       "description": "Simple usage example.",
       "path": "Samples~/UsageExample",
 	  "dependencies": {
-		"com.unity.rendering.hybrid": "0.10.0-preview.21"
+		"com.unity.entities.graphics": "1.0.0-pre.15"
 		}
     }
   ]
