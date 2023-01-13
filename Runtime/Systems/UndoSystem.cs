@@ -9,7 +9,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
     [UpdateBefore(typeof(AddCommandSystem))]
-    public class UndoSystem : SystemBase
+    public partial class UndoSystem : SystemBase
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
 
@@ -19,7 +19,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
         protected override void OnCreate()
         {
             base.OnCreate();
-            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            _BarrierSystem = this.World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
 
             var query = new EntityQueryDesc
             {
@@ -47,7 +47,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 var commandSystems = types.Where(t => t.IsSubclassOf(typeof(CommandSystemBase))).ToArray();
                 foreach (var systemType in commandSystems)
                     _CommandSystems.Add(
-                        (CommandSystemBase) World.GetOrCreateSystem(systemType));
+                        (CommandSystemBase) World.GetOrCreateSystemManaged(systemType));
             }
 
         }

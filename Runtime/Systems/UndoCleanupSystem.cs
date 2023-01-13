@@ -4,7 +4,7 @@ using Unity.Entities;
 namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
-    public class UndoCleanupSystem : SystemBase
+    public partial class UndoCleanupSystem : SystemBase
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         private EntityQuery _CancelmQuery;
@@ -15,7 +15,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
         protected override void OnCreate()
         {
             base.OnCreate();
-            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            _BarrierSystem = this.World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             var query = new EntityQueryDesc
             {
                 None = new ComponentType[] {typeof(Command)},

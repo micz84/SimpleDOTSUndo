@@ -6,14 +6,14 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
     [UpdateBefore(typeof(RedoSystem))]
-    public class AddCommandSystem : SystemBase
+    public partial class AddCommandSystem : SystemBase
     {
         private EntityQuery _NewCommandQuery;
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         protected override void OnCreate()
         {
             base.OnCreate();
-            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            _BarrierSystem = this.World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             var query = new EntityQueryDesc
             {
                 None = new[] {ComponentType.ReadOnly<RegisteredCommandSystemState>()},

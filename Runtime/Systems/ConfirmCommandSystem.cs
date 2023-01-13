@@ -6,7 +6,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
     [UpdateBefore(typeof(RemoveTemporaryCommandSystem))]
-    public class ConfirmCommandSystem:SystemBase
+    public partial class ConfirmCommandSystem:SystemBase
     {
         private EntityQuery _TempCommand;
 
@@ -23,7 +23,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             };
             _TempCommand = GetEntityQuery(queryDesc);
             RequireForUpdate(_TempCommand);
-            RequireSingletonForUpdate<ConfirmCommand>();
+            RequireForUpdate<ConfirmCommand>();
         }
 
         protected override void OnUpdate()

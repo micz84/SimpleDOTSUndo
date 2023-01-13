@@ -42,7 +42,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 
             entities.Dispose();
 
-            var barrier = _TestWord.GetExistingSystem<EndSimulationEntityCommandBufferSystem>();
+            var barrier = _TestWord.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
             barrier.Update();
             Assert.IsFalse(_EntityManager.HasComponent<PerformDo>(entity));
         }

@@ -9,7 +9,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
     [UpdateBefore(typeof(UndoCleanupSystem))]
-    public class RedoSystem : SystemBase
+    public partial class RedoSystem : SystemBase
     {
         private EndSimulationEntityCommandBufferSystem _BarrierSystem;
         private readonly List<CommandSystemBase> _CommandSystems = new List<CommandSystemBase>();
@@ -18,7 +18,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
         protected override void OnCreate()
         {
             base.OnCreate();
-            _BarrierSystem = World.GetOrCreateSystem<EndSimulationEntityCommandBufferSystem>();
+            _BarrierSystem = this.World.GetExistingSystemManaged<EndSimulationEntityCommandBufferSystem>();
 
             var query = new EntityQueryDesc
             {
@@ -42,7 +42,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
                 var commandSystems = types.Where(t => t.IsSubclassOf(typeof(CommandSystemBase))).ToArray();
                 foreach (var systemType in commandSystems)
                     _CommandSystems.Add(
-                        (CommandSystemBase) World.GetOrCreateSystem(systemType));
+                        (CommandSystemBase) World.GetOrCreateSystemManaged(systemType));
             }
 
             RequireForUpdate(_PerformDoCommand);

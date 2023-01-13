@@ -8,9 +8,9 @@ using UnityEngine;
 
 namespace pl.breams.SimpleDOTSUndo.Sample.Systems
 {
-    [UpdateBefore(typeof(UndoSystemGroup))]
-    [AlwaysUpdateSystem]
-    public class InputSystem:SystemBase
+    [UpdateInGroup(typeof(UndoSystemGroup))]
+    [UpdateBefore(typeof(UndoSystem))]
+    public partial class InputSystem:SystemBase
     {
         private EntityArchetype _UndoArchetype;
         private EntityArchetype _RedoArchetype;
@@ -21,6 +21,8 @@ namespace pl.breams.SimpleDOTSUndo.Sample.Systems
         protected override void OnCreate()
         {
             base.OnCreate();
+            //var ug = World.GetOrCreateSystemManaged<MyFixedUpdateGroup>();
+            //ug.Timestep = 1;
             _UndoArchetype = EntityManager.CreateArchetype(ComponentType.ReadWrite<PerformUndo>());
             _RedoArchetype = EntityManager.CreateArchetype(ComponentType.ReadWrite<PerformDo>());
             _MoveEntityCommandArchetype = EntityManager.CreateArchetype(ComponentType.ReadWrite<MoveEntityCommand>(), ComponentType.ReadWrite<RollbackMoveEntityCommand>(), ComponentType.ReadWrite<Command>(), ComponentType.ReadWrite<TempCommand>());
@@ -30,8 +32,9 @@ namespace pl.breams.SimpleDOTSUndo.Sample.Systems
 
         protected override void OnUpdate()
         {
-            var playerEntity = GetSingletonEntity<Player>();
-            var translation = GetComponent<Translation>(playerEntity);
+            //Debug.Log("M:"+SystemAPI.Time.ElapsedTime);
+            var playerEntity = SystemAPI.GetSingletonEntity<Player>();
+            var translation = SystemAPI.GetAspectRW<TransformAspect>(playerEntity);
             if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftAlt) &&
                 !Input.GetKey(KeyCode.LeftShift) && Input.GetKeyUp(KeyCode.Z))
             {
@@ -64,7 +67,7 @@ namespace pl.breams.SimpleDOTSUndo.Sample.Systems
 
             if (GetMoveInput(out var moveDir))
             {
-                var currentPosition = translation.Value;
+                var currentPosition = translation.LocalPosition;
                 var command = EntityManager.CreateEntity(_MoveEntityCommandArchetype);
                 EntityManager.SetComponentData(command,new MoveEntityCommand
                 {
@@ -83,7 +86,7 @@ namespace pl.breams.SimpleDOTSUndo.Sample.Systems
             {
                 if (_Canceled)
                     _Canceled = false;
-                else if (HasSingleton<TempCommand>())
+                else if (SystemAPI.HasSingleton<TempCommand>())
                 {
                     EntityManager.CreateEntity(_ConfirmArchetype);
                 }
@@ -97,25 +100,29 @@ namespace pl.breams.SimpleDOTSUndo.Sample.Systems
 
             if (Input.GetKeyDown(KeyCode.W))
             {
+                UnityEngine.Debug.Log("W");
                 moveDir = new float3(0, 0, 1);
                 return true;
             }
             if (Input.GetKeyDown(KeyCode.S))
             {
+                UnityEngine.Debug.Log("S");
                 moveDir = new float3(0, 0, -1);
                 return true;
             }
             if (Input.GetKeyDown(KeyCode.A))
             {
+                UnityEngine.Debug.Log("A");
                 moveDir = new float3(-1, 0, 0);
                 return true;
+                
             }
             if (Input.GetKeyDown(KeyCode.D))
             {
+                UnityEngine.Debug.Log("D");
                 moveDir = new float3(1, 0, 0);
                 return true;
             }
-
             return false;
         }
 

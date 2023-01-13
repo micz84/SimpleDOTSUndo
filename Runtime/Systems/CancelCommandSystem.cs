@@ -6,7 +6,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
     [UpdateBefore(typeof(RemoveTemporaryCommandSystem))]
-    public class CancelCommandSystem:SystemBase
+    public partial class CancelCommandSystem:SystemBase
     {
         private EntityQuery _TempCommand;
         private EntityArchetype _UndoArchetype;
@@ -24,7 +24,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
             _UndoArchetype = EntityManager.CreateArchetype(ComponentType.ReadWrite<PerformUndo>());
             _TempCommand = GetEntityQuery(queryDesc);
             RequireForUpdate(_TempCommand);
-            RequireSingletonForUpdate<CancelCommand>();
+            RequireForUpdate<CancelCommand>();
         }
 
         protected override void OnUpdate()

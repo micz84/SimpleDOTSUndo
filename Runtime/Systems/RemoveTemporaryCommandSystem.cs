@@ -6,7 +6,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
 {
     [UpdateInGroup(typeof(UndoSystemGroup))]
     [UpdateBefore(typeof(UndoSystem))]
-    public class RemoveTemporaryCommandSystem : SystemBase
+    public partial class RemoveTemporaryCommandSystem : SystemBase
     {
         private EntityQuery _PerformDoCommand;
         private EntityQuery _TempCommand;

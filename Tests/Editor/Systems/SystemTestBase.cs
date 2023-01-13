@@ -14,7 +14,7 @@ namespace pl.breams.SimpleDOTSUndo.Systems
         {
             _TestWord = new World("TestWorld");
             _EntityManager = _TestWord.EntityManager;
-            _System = _TestWord.GetOrCreateSystem<T>();
+            _System = _TestWord.GetExistingSystemManaged<T>();
         }
 
         [TearDown]
